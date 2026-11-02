@@ -1,0 +1,11 @@
+{
+    "largeboardfixes":
+    {
+        "name":"Fortune Street Fixes",
+        "description":"Various fixes for Boom Street/Fortune Street",
+        "version":"0.1",
+        "entity":"modpack",
+        "type":"fixes",
+        "last_updated":"2026/11/03"
+    }
+}

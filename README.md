@@ -1,0 +1,27 @@
+# FortuneStreetFixes
+
+A [Custom Street Map Manager](https://github.com/FortuneStreetModding/csmm) (CSMM) modpack that fixes original-game bugs which show up with large custom boards (many squares, many intersections).
+
+Developed and tested with the PAL version Boom Street (ST7P01).
+
+## Usage
+
+Add this modpack to CSMM like any other modpack (`modlist.txt` contains `+LargeBoardFixes`). The mod patches `main.dol` at build time, checks every original instruction before it writes, and runs late (priority −1000).
+
+## Findings and fixes
+
+| # | Problem | Cause | Fix | Status |
+|---|---|---|---|---|
+| 1 | High-ID squares, their buildings and the cursor disappear depending on camera position | The board scene (`Scene::Board::Init(task, 400, 400)`) can only gather 400 visible objects; anything beyond is silently not drawn | Raise both limits to 1024 (0x8007A68C, 0x8007A690) | Confirmed in game |
+| 2 | Crash at 88+ squares (`Memory::Heap::free_sub`, 0x80007E58) | `Game::MiniMapMap` allocates 0x1E0 bytes (6 bytes per square, so 80 squares) and overwrites the next heap block header | Allocate 0x600 bytes (0x800B00F4) | Confirmed in game |
+| 3 | Quick save is never offered for resuming in CSMM builds | `GetSuspendDataIdx` picks the slot from the board rule, but `IsSuspendDataEnable` uses GameSelectInfo+0x226, which CSMM repurposes as the map set | Both now use GSI+0x226 (0x800D29BC–0x800D29FC) | Confirmed in game |
+| 4 | Board save data only fits 87 squares (0x3000-byte buffers, 0x2254 header + 0x28 per square). `SaveGame` fails silently, and a stale save of another map gets resumed | Fixed buffer size | Above 87 squares, a compact format stores 13 dynamic bytes per square; static data is restored from the current switch layout of the map file. Maps with 87 squares or fewer keep the original format. If saving still fails, the quick-save slot is marked empty | Confirmed in game, including after a restart and on switch maps |
+| 5 | AI crash at 0x8009D238 (write to 0x10) on maps with many branches | `Ai::Player::SearchRoute` runs out of its 0x20000 node arena, gets NULL and writes to it anyway | Skip the branch when allocation fails (0x8009D234); the tree traversal already ignores NULL children | Confirmed in game |
+| 6 | Game freezes for seconds during AI turns, especially on high dice rolls | `Ai::Player::CalcDistance4Salary` is an exhaustive depth-first search over all routes up to squares + 10 steps, with no visited set, so its cost is exponential | Replaced with a breadth-first search over (square, entry direction, suit bits); each state is visited once | Confirmed in game on maps with many intersections; also emulator-verified against the original code: identical results, avg 5.9M → 3.3K instructions per call |
+
+Addresses are Boom Street (ST7P01) virtual addresses.
+
+## Hard limits and open points
+
+- **128 squares is a hard limit.** `Gm::Board` has room for 128 places. Square 129 onward overlaps the district data, so maps that large crash on load (`Gm::Area::AddPlace`, 0x8009203C). Moving the array is not practical (200+ code sites). Ideally CSMM would reject such maps on import.
+- **Weaker AI on very branchy maps:** with fix 5, the AI evaluates fewer routes on such maps. It is slightly weaker, but no longer crashes.
