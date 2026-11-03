@@ -60,6 +60,13 @@ STOP_SWITCH_MAP_ARRAY_L = 0x8007F144  # Gm::Board::StopSwitch         addi r4, r
 CALC_DISTANCE_4_SALARY = 0x8009CD84   # Ai::Player::CalcDistance4Salary(int, int, int, int) const
 GET_NEXT_PLACE = 0x8008FFA4           # Gm::Place::GetNextPlace(int*, int, bool) const
 G_BOARD = 0x8054D018                  # Gm::g_board
+AREA_UI_SHOP_COUNT = 0x80114054       # Game::AreaUI::exec            lwz r0, 0x10(r25) (shop row loop condition)
+
+# Game::AreaUI (district overview) has exactly 6 shop rows (Game::UIAreaShopStatus, 0x48 bytes each),
+# but fills one row per shop of the district. Rows 7+ lie past the array (inside Game::UIPlayerStock):
+# a 7th shop silently writes into the wrong UI object, an 8th crashes (NULL layout, 0x8006EB4C).
+# Only fill the 6 existing rows.
+AREA_UI_ROWS = 6
 
 # Ai::Player::CalcDistance4Salary() computes how many steps the AI still needs to collect the missing
 # suits and reach the bank. The original walks every possible route with a depth first search (up to
@@ -82,6 +89,7 @@ HOOKS = [
 	(LOAD_GAME_SQUARE, 0xAA3F0000, 'load_square', True),
 	(SETUP_SUSPEND_SAVE, 0x48070AF9, 'suspend_save', True),
 	(CALC_DISTANCE_4_SALARY, 0x9421FB90, 'calc_distance', False),
+	(AREA_UI_SHOP_COUNT, 0x80190010, 'area_ui_shop_count', True),
 ]
 
 
@@ -278,6 +286,15 @@ def assemble(base, std, vars_addr, map_array):
 	a.lwz(0, 0x14, 1)
 	a.mtlr(0)
 	a.addi(1, 1, 0x10)
+	a.blr()
+
+	# Game::AreaUI::exec: r25 = Gm::Area -> r0 = min(shop count, rows)
+	a.label('area_ui_shop_count')
+	a.lwz(0, 0x10, 25)
+	a.cmpwi(0, AREA_UI_ROWS)
+	a.ble('area_ui_shop_count_done')
+	a.li(0, AREA_UI_ROWS)
+	a.label('area_ui_shop_count_done')
 	a.blr()
 
 	# Ai::Player::CalcDistance4Salary(this, place, prev place, suit bits, wild suits) -> steps
