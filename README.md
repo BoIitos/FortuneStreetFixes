@@ -1,6 +1,6 @@
 # FortuneStreetFixes
 
-A [Custom Street Map Manager](https://github.com/FortuneStreetModding/csmm) (CSMM) modpack that fixes original-game bugs which show up with large custom boards (many squares, many intersections).
+A [Custom Street Map Manager](https://github.com/FortuneStreetModding/csmm-qt) (CSMM) modpack that fixes original-game bugs which show up with large custom boards (many squares, many intersections).
 
 Developed and tested with the PAL version Boom Street (ST7P01).
 
@@ -37,3 +37,7 @@ Addresses are Boom Street (ST7P01) virtual addresses.
 - **128 squares is a hard limit.** `Gm::Board` has room for 128 places. Square 129 onward overlaps the district data, so maps that large crash on load (`Gm::Area::AddPlace`, 0x8009203C). Moving the array is not practical (200+ code sites). Ideally CSMM would reject such maps on import.
 - **12 districts is a hard limit.** The 12 areas sit at a fixed place in `Gm::Board` (0x2A00–0x2FA0, followed by the players), each player has 12 stock counters (0x414–0x443), the save format has fixed slots for 12, and the UI is laid out for districts A–L.
 - **8 shops per district is a hard limit.** `Gm::Area` stores its shops in 8 bytes (0x08–0x0F), followed by the shop count. `Gm::Area::AddPlace` has no bounds check, so a 9th shop overwrites the count. With fix 7, the overview shows all 8.- **Weaker AI on very branchy maps:** with fix 5, the AI evaluates fewer routes on such maps. It is slightly weaker, but no longer crashes.
+
+## Disclaimer
+
+<img src="AI.svg" alt="AI" width="32" height="32">This modpack has been made with the help of AI.
