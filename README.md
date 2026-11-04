@@ -6,7 +6,17 @@ Developed and tested with the PAL version Boom Street (ST7P01).
 
 ## Usage
 
-Add this modpack to CSMM like any other modpack (`modlist.txt` contains `+LargeBoardFixes`). The mod patches `main.dol` and the district overview layout in `game_board*.arc` at build time. It checks every original instruction before it writes and runs late (priority −1000).
+Add this modpack to CSMM like any other modpack. The fixes are split into three independent mods; remove a line from `modlist.txt` to leave one out.
+
+| Mod | Purpose | Fixes |
+|---|---|---|
+| `Board128Squares` | Boards with up to 128 squares, including quick saves | 1–4 |
+| `AiPathing` | AI crash and freezes on boards with many branches | 5–6 |
+| `EightShopDistricts` | District overview with up to 8 shops | 7 |
+
+`FortuneStreetFixesCommon.py` holds the assembler and patch helpers shared by the mods. It is not a mod itself, so it is not listed in `modlist.txt`, but it must stay in the modpack.
+
+The mods patch `main.dol` at build time, and `EightShopDistricts` also changes the district overview layout in `game_board*.arc`. They check every original instruction before they write and run late (priority −1000).
 
 ## Findings and fixes
 
