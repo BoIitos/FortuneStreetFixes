@@ -22,8 +22,8 @@ AREA_UI_NAMES = 0x80475C40            # const char* names[6] = {"n_shop01", ...}
 AREA_UI_NAMES_HOOK = 0x80112090       # Game::AreaUI::AreaUI          addi r25, r31, 0x38 (= names)
 
 
-def area_ui_patches(names):
-	"""(Boom Street address, original, patched) for 8 shop boxes at AREA_UI_BOXES; names = new name table."""
+def area_ui_patches(names, old_names):
+	"""(Boom Street address, original, patched) for 8 shop boxes at AREA_UI_BOXES; names = new name table, old_names = AREA_UI_NAMES in this main.dol."""
 	n, off, delta = AREA_UI_ROWS, AREA_UI_BOXES, AREA_UI_DELTA
 	return [
 		# GameScene: new Game::AreaUI
@@ -54,11 +54,11 @@ def area_ui_patches(names):
 		(0x8011375C, one(lambda a: a.addi(17, 15, 0x4C)), one(lambda a: a.addi(17, 15, off))),
 		(0x80113788, one(lambda a: a.cmpwi(16, 6)), one(lambda a: a.cmpwi(16, n))),
 		(0x80114084, one(lambda a: a.cmpwi(14, 6)), one(lambda a: a.cmpwi(14, n))),
-		(0x80113C64, one(lambda a: a.lis(14, ha(AREA_UI_NAMES))), one(lambda a: a.lis(14, ha(names)))),
-		(0x80113C74, one(lambda a: a.addi(14, 14, AREA_UI_NAMES)), one(lambda a: a.addi(14, 14, names))),
+		(0x80113C64, one(lambda a: a.lis(14, ha(old_names))), one(lambda a: a.lis(14, ha(names)))),
+		(0x80113C74, one(lambda a: a.addi(14, 14, old_names)), one(lambda a: a.addi(14, 14, names))),
 		(0x80113C98, one(lambda a: a.cmpwi(16, 6)), one(lambda a: a.cmpwi(16, n))),
-		(0x80113CC4, one(lambda a: a.lis(22, ha(AREA_UI_NAMES))), one(lambda a: a.lis(22, ha(names)))),
-		(0x80113CEC, one(lambda a: a.addi(22, 22, AREA_UI_NAMES)), one(lambda a: a.addi(22, 22, names))),
+		(0x80113CC4, one(lambda a: a.lis(22, ha(old_names))), one(lambda a: a.lis(22, ha(names)))),
+		(0x80113CEC, one(lambda a: a.addi(22, 22, old_names)), one(lambda a: a.addi(22, 22, names))),
 		(0x80113CE4, one(lambda a: a.mr(21, 15)), one(lambda a: a.addi(21, 15, delta))),
 	]
 
@@ -250,7 +250,7 @@ class Mod(pycsmm.CSMMMod, pycsmm.GeneralInterface, pycsmm.ArcFileInterface):
 			names = [dol.read(dol.std(AREA_UI_NAMES) + 4 * i) for i in range(6)]
 			names += [strings_addr + 12 * i for i in range(AREA_UI_ROWS - 6)]
 			names_addr = dol.allocate(b''.join(x.to_bytes(4, 'big') for x in names), 'shop pane name table')
-			dol.patch(area_ui_patches(names_addr))
+			dol.patch(area_ui_patches(names_addr, dol.std(AREA_UI_NAMES)))
 
 			layout_addr = dol.allocate(shop_4x3_data(), '4:3 shop row layout')
 			dol.install(lambda base, std: assemble(base, std, names_addr, layout_addr), HOOKS)

@@ -78,7 +78,7 @@ def one(emit):
 
 
 class Dol:
-	"""main.dol opened for patching. Addresses are Boom Street addresses unless they come from allocate()."""
+	"""main.dol opened for patching. patch() and install() take Boom Street addresses, the other methods addresses of this main.dol (see std())."""
 	def __init__(self, file, gameInstance, modid):
 		self.file = file
 		self.mapper = gameInstance.addressMapper()
@@ -87,7 +87,7 @@ class Dol:
 	def std(self, addr):
 		return self.mapper.boomStreetToStandard(addr)
 	def file_offset(self, addr):
-		return self.mapper.boomToFileAddress(self.mapper.standardToBoomStreet(addr))
+		return self.mapper.toFileAddress(addr)
 	def read(self, addr):
 		self.file.seek(self.file_offset(addr))
 		return int.from_bytes(self.file.read(4), 'big')

@@ -1,6 +1,6 @@
 import pycsmm
 import os
-from FortuneStreetFixesCommon import Asm, Dol, ha
+from FortuneStreetFixesCommon import Asm, Dol, ha, one
 
 MODID = __name__
 
@@ -16,22 +16,29 @@ PATCHES = [
 	# Larger boards overflow into the next heap block's header and crash on free.
 	# Allocate room for 256 squares (the size of Gm::Board's square array).
 	(0x800B00F4, 0x386001E0, 0x38600600),  # li r3, 0x1e0 -> li r3, 0x600
-	# Game::GameManager::GetSuspendDataIdx() picks the quick save slot from the board's rule set,
-	# but GameSequenceDataAdapter::IsSuspendDataEnable() (Free Play prompt) checks the slot from
-	# GameSelectInfo+0x226, which CSMM repurposes as the map set. Both disagree, so quick saves
-	# are never offered for resuming. Pick the slot from GameSelectInfo+0x226 as well.
-	# 0x228 == 0: slot = (gsi[0x226] == 1) ? 2 : 0
-	(0x800D29BC, 0x3C608055, 0x88630226),  # lis r3, g_board@ha       -> lbz r3, 0x226(r3)
-	(0x800D29C4, 0x3863D018, 0x68630001),  # addi r3, r3, g_board@l   -> xori r3, r3, 1
-	(0x800D29C8, 0x806353F4, 0x60000000),  # lwz r3, 0x53f4(r3)       -> nop
-	(0x800D29D8, 0x7C031878, 0x7C031838),  # andc r3, r0, r3          -> and r3, r0, r3
-	# 0x228 == 1: slot = (gsi[0x226] == 1) ? 3 : 1
-	(0x800D29E8, 0x3C808055, 0x88830226),  # lis r4, g_board@ha       -> lbz r4, 0x226(r3)
-	(0x800D29F0, 0x3884D018, 0x60000000),  # addi r4, r4, g_board@l   -> nop
-	(0x800D29F4, 0x800453F4, 0x60000000),  # lwz r0, 0x53f4(r4)       -> nop
-	(0x800D29F8, 0x2C000000, 0x2C040001),  # cmpwi r0, 0              -> cmpwi r4, 1
-	(0x800D29FC, 0x40820010, 0x41820010),  # bne end                  -> beq end
 ]
+
+
+def quick_save_patches(g_board):
+	"""(Boom Street address, original, patched); g_board = address of Gm::g_board in this main.dol."""
+	return [
+		# Game::GameManager::GetSuspendDataIdx() picks the quick save slot from the board's rule set,
+		# but GameSequenceDataAdapter::IsSuspendDataEnable() (Free Play prompt) checks the slot from
+		# GameSelectInfo+0x226, which CSMM repurposes as the map set. Both disagree, so quick saves
+		# are never offered for resuming. Pick the slot from GameSelectInfo+0x226 as well.
+		# 0x228 == 0: slot = (gsi[0x226] == 1) ? 2 : 0
+		(0x800D29BC, one(lambda a: a.lis(3, ha(g_board))), 0x88630226),      # lis r3, g_board@ha     -> lbz r3, 0x226(r3)
+		(0x800D29C4, one(lambda a: a.addi(3, 3, g_board)), 0x68630001),      # addi r3, r3, g_board@l -> xori r3, r3, 1
+		(0x800D29C8, 0x806353F4, 0x60000000),  # lwz r3, 0x53f4(r3)       -> nop
+		(0x800D29D8, 0x7C031878, 0x7C031838),  # andc r3, r0, r3          -> and r3, r0, r3
+		# 0x228 == 1: slot = (gsi[0x226] == 1) ? 3 : 1
+		(0x800D29E8, one(lambda a: a.lis(4, ha(g_board))), 0x88830226),      # lis r4, g_board@ha     -> lbz r4, 0x226(r3)
+		(0x800D29F0, one(lambda a: a.addi(4, 4, g_board)), 0x60000000),      # addi r4, r4, g_board@l -> nop
+		(0x800D29F4, 0x800453F4, 0x60000000),  # lwz r0, 0x53f4(r4)       -> nop
+		(0x800D29F8, 0x2C000000, 0x2C040001),  # cmpwi r0, 0              -> cmpwi r4, 1
+		(0x800D29FC, 0x40820010, 0x41820010),  # bne end                  -> beq end
+	]
+
 
 # Board save data (Gm::Board::SaveGame/LoadGame) has a fixed 0x2254 byte header followed by 0x28 bytes
 # per square. Quick saves and turn restoration only provide 0x3000 bytes, which fits at most 87 squares.
@@ -42,6 +49,7 @@ MAX_FULL_SQUARES = 87
 COMPACT_SIZE = 13
 
 # Boom Street addresses
+G_BOARD = 0x8054D018                  # Gm::g_board
 CALC_SAVE_SIZE_MULLI = 0x80083818     # Gm::Board::CalcSaveSize       mulli r3, r0, 0x28
 SAVE_GAME = 0x80083824                # Gm::Board::SaveGame
 SAVE_GAME_MULLI = 0x8008384C          # Gm::Board::SaveGame           mulli r3, r0, 0x28
@@ -204,6 +212,7 @@ class Mod(pycsmm.CSMMMod, pycsmm.GeneralInterface):
 		with open(os.path.join(root, 'sys', 'main.dol'), 'r+b') as file:
 			dol = Dol(file, gameInstance, MODID)
 			dol.patch(PATCHES)
+			dol.patch(quick_save_patches(dol.std(G_BOARD)))
 
 			# CSMM relocates s_map_data_array; take its address from Gm::Board::StopSwitch
 			lis = dol.read(dol.std(STOP_SWITCH_MAP_ARRAY_HA))

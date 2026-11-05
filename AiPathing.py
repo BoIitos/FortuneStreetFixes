@@ -48,8 +48,9 @@ def assemble(base, std):
 	a.mflr(0)
 	a.stw(0, F + 4, 1)
 	a.stmw(18, DIST_SAVE, 1)
-	a.lis(31, ha(G_BOARD))
-	a.addi(31, 31, G_BOARD)        # r31 = board
+	g_board = std(G_BOARD)
+	a.lis(31, ha(g_board))
+	a.addi(31, 31, g_board)        # r31 = board
 	a.lwz(30, 0x5414, 31)
 	a.addi(30, 30, 10)             # r30 = search limit (squares + 10), returned if the bank is unreachable
 	a.extsb(29, 7)                 # r29 = wild suits
