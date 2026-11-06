@@ -10,7 +10,7 @@ Add this modpack to CSMM like any other modpack. The fixes are split into three 
 
 | Mod | Purpose | Fixes |
 |---|---|---|
-| `Board128Squares` | Boards with up to 128 squares, including quick saves | 1–4 |
+| `Board128Squares` | Boards with up to 128 squares, including quick saves | 1–4, 8 |
 | `AiPathing` | AI crash and freezes on boards with many branches | 5–6 |
 | `EightShopDistricts` | District overview with up to 8 shops | 7 |
 
@@ -29,6 +29,7 @@ The mods patch `main.dol` at build time, and `EightShopDistricts` also changes t
 | 5 | AI crash at 0x8009D238 (write to 0x10) on maps with many branches | `Ai::Player::SearchRoute` runs out of its 0x20000 node arena, gets NULL and writes to it anyway | Skip the branch when allocation fails (0x8009D234); the tree traversal already ignores NULL children | Confirmed in game |
 | 6 | Game freezes for seconds during AI turns, especially on high dice rolls | `Ai::Player::CalcDistance4Salary` is an exhaustive depth-first search over all routes up to squares + 10 steps, with no visited set, so its cost is exponential | Replaced with a breadth-first search over (square, entry direction, suit bits); each state is visited once | Confirmed in game on maps with many intersections; also emulator-verified against the original code: identical results, avg 5.9M → 3.3K instructions per call |
 | 7 | Crash at 0x8006EB4C (read from 0x50) when a district has 8 shops; a 7th shop is silently written into the wrong UI object and is not shown | `Game::AreaUI` (district overview) has exactly 6 shop boxes (`Game::UIAreaShopStatus`, 0x48 bytes each, at +0x4C), but `Game::AreaUI::exec` fills one box per shop; boxes 7+ lie past the array | The overview now has 8 boxes: the object is allocated with 0xD48 instead of 0xB08 bytes (0x800BF60C) and the box array moves to the new tail at +0xB08, so all other members keep their offsets. All loops over the boxes (constructor, destructor, `Open`, `StartClose`, `HighlightOn`/`HighlightOff`, `exec`) run to 8, and a new pane name table adds `n_shop07`/`n_shop08`. `exec` fills at most 8 boxes (hook at 0x80114054). In `ui_game_018_scene.brlyt` (all `game_board*.arc`), two copies of `n_shop06` are added, the boxes are placed at x = −203 + 74·i, and the legend `n_sub` moves 80 units to the left. That row is too wide for 4:3, so there a hook in the `Game::AreaUI` constructor (0x80112110) checks `System::Render::Is4x3()`, scales boxes and legend to 0.8 and moves them closer together (`Scene::Layout::Obj::SetTranslate`/`Scale`) | Confirmed in game (16:9 and 4:3) |
+| 8 | Crash at 0x80348254 (read from 0x4) when the venture card selection opens on large boards, not on every opening | All models (`Resource::Model::Obj`) share a fixed 3 MB heap in MEM2 (`Memory::Init`). When it is full, `ChanceCardSelector::Open` cannot create the last card panels (`ScnMdl` stays NULL), and `ChanceCardSelector::exec` reads their material without checking | Raise the heap to 4 MB (0x8000D2F8, 0x8000D310); the task heap gets the rest of MEM2 and shrinks by 1 MB | Confirmed in game (two autopilot games on a 128-square board, over 300 rounds each) |
 
 Addresses are Boom Street (ST7P01) virtual addresses.
 

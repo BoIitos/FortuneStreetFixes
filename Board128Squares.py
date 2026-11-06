@@ -16,6 +16,12 @@ PATCHES = [
 	# Larger boards overflow into the next heap block's header and crash on free.
 	# Allocate room for 256 squares (the size of Gm::Board's square array).
 	(0x800B00F4, 0x386001E0, 0x38600600),  # li r3, 0x1e0 -> li r3, 0x600
+	# Memory::Init() creates a fixed 3 MB heap in MEM2 for all models (Resource::Model::Obj). Large boards
+	# with many buildings fill it. Game::ChanceCardSelector::Open() then fails to create the last card
+	# panels and exec() reads the material of the missing model (crash at 0x80348254 reading from 0x4).
+	# Use 4 MB; the task heap gets the rest of MEM2 and shrinks accordingly.
+	(0x8000D2F8, 0x3C600030, 0x3C600040),  # lis r3, 0x30 -> lis r3, 0x40 (OSAllocFromMEM2ArenaHi)
+	(0x8000D310, 0x3C800030, 0x3C800040),  # lis r4, 0x30 -> lis r4, 0x40 (MEMCreateExpHeapEx)
 ]
 
 
