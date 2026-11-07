@@ -1,0 +1,11 @@
+{
+    "samples":
+    {
+        "name":"Sample maps",
+        "description":"Sample maps for testing FortuneStreetFixes",
+        "version":"1.0",
+        "entity":"modpack",
+        "type":"primary",
+        "last_updated":"2026/11/07"
+    }
+}

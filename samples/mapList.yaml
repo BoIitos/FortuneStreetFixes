@@ -1,0 +1,47 @@
+backgrounds: backgrounds.yml
+0:
+  0:
+    Borg.zip:
+    FeelFree.zip:
+    QuadTowers.zip:
+    placeholder.zip:
+    placeholder.zip:
+    placeholder.zip:
+  1:
+    placeholder.zip:
+    placeholder.zip:
+    placeholder.zip:
+    placeholder.zip:
+    placeholder.zip:
+    placeholder.zip:
+  2:
+    placeholder.zip:
+    placeholder.zip:
+    placeholder.zip:
+    placeholder.zip:
+    placeholder.zip:
+    placeholder.zip:
+      practiceBoard: true
+1:
+  0:
+    Borg.zip:
+    FeelFree.zip:
+    QuadTowers.zip:
+    placeholder.zip:
+    placeholder.zip:
+    placeholder.zip:
+  1:
+    placeholder.zip:
+    placeholder.zip:
+    placeholder.zip:
+    placeholder.zip:
+    placeholder.zip:
+    placeholder.zip:
+  2:
+    placeholder.zip:
+    placeholder.zip:
+    placeholder.zip:
+    placeholder.zip:
+    placeholder.zip:
+    placeholder.zip:
+      practiceBoard: true

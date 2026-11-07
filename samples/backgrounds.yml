@@ -1,0 +1,84 @@
+- background: bg001
+  mapIcon: p_bg_001
+  bgm:  BGM_MAP_YOSHI
+  name: Yoshi's Island
+- background: bg002
+  mapIcon: p_bg_002
+  bgm:  BGM_MAP_CIRCUIT
+  name: Mario Circuit
+- background: bg003
+  mapIcon: p_bg_003
+  bgm:  BGM_MAP_PEACH
+  name: Peach's Castle
+- background: bg004
+  mapIcon: p_bg_004
+  bgm:  BGM_MAP_STADIUM
+  name: Mario Stadium
+- background: bg005
+  mapIcon: p_bg_005
+  bgm:  BGM_MAP_DOLPIC
+  name: Delfino Plaza
+- background: bg006
+  mapIcon: p_bg_006
+  bgm:  BGM_MAP_SMB
+  name: Super Mario Bros.
+- background: bg007
+  mapIcon: p_bg_007
+  bgm:  BGM_MAP_KOOPA
+  name: Bowser's Castle
+- background: bg008
+  mapIcon: p_bg_008
+  bgm:  BGM_MAP_STARSHIP
+  name: Starship Mario
+- background: bg009
+  mapIcon: p_bg_009
+  bgm:  BGM_MAP_EGG
+  name: Good Egg Galaxy
+- background: bg101
+  mapIcon: p_bg_101
+  bgm:  BGM_MAP_TRODAIN
+  name: Castle Trodain
+- background: bg102
+  mapIcon: p_bg_102
+  bgm:  BGM_MAP_GHOSTSHIP
+  name: Ghost Ship
+- background: bg103
+  mapIcon: p_bg_103
+  bgm:  BGM_MAP_MAJINZOU
+  name: Colossus
+- background: bg103_e
+  mapIcon: p_bg_103
+  bgm:  BGM_MAP_MAJINZOU
+  name: Colossus Easy
+- background: bg104
+  mapIcon: p_bg_104
+  bgm:  BGM_MAP_SINOKAZAN
+  name: Mt Magmageddon
+- background: bg105
+  mapIcon: p_bg_105
+  bgm:  BGM_MAP_SLABACCA
+  name: Slimenia
+- background: bg106
+  mapIcon: p_bg_106
+  bgm:  BGM_MAP_KANDATA
+  name: Robbin' Hood Ruins
+- background: bg107
+  mapIcon: p_bg_107
+  bgm:  BGM_MAP_ALEFGARD
+  name: Alefgard
+- background: bg108
+  mapIcon: p_bg_108
+  bgm:  BGM_MAP_DHAMA
+  name: Alltrades Abbey
+- background: bg109
+  mapIcon: p_bg_109
+  bgm:  BGM_MAP_ANGEL
+  name: The Observatory
+- background: bg901
+  name: Tutorial
+  bgm:  BGM_MENU
+- background: bg009alt
+  name: bg009alt
+  download:
+  - https://nikkums.io/cswt/Backgrounds/bg009alt.background.zip
+  mapIcon: bg009alt
