@@ -2,7 +2,7 @@
 
 A [Custom Street Map Manager](https://github.com/FortuneStreetModding/csmm-qt) (CSMM) modpack that fixes original-game bugs which show up with large custom boards (many squares, many intersections).
 
-Developed and tested with the PAL version Boom Street (ST7P01). All addresses go through the CSMM address mapper, so Fortune Street and Itadaki Street should work as well, but neither has been tested.
+Developed and tested with the PAL version Boom Street (ST7P01). All addresses go through the CSMM address mapper, so Fortune Street (ST7E01) and Itadaki Street (ST7JGD) should work as well, but neither has been tested.
 
 ## Usage
 
@@ -41,4 +41,4 @@ Addresses are Boom Street (ST7P01) virtual addresses.
 
 ## Disclaimer
 
-<img src="AI.svg" alt="AI" width="32" height="32">This modpack has been made with the help of AI.
+<img src="AI.svg" alt="AI" width="32" height="32">This modpack has been made with the help of Claude Opus.
