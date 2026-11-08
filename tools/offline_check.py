@@ -10,8 +10,8 @@ simulated at FREE_SPACE, which is not free in reality, so the result must not be
 import os, sys, shutil, struct, tempfile, importlib
 
 here = os.path.dirname(os.path.abspath(__file__))
-sys.path[:0] = [here, os.path.dirname(here)]
-MODS = ('Board128Squares', 'AiPathing', 'EightShopDistricts')
+sys.path[:0] = [here, os.path.join(os.path.dirname(here), 'mod')]
+MODS = ('Board128Squares', 'AiPathing', 'AiNumberInput', 'EightShopDistricts')
 FREE_SPACE = 0x80390000
 
 # (first Boom Street address, last Boom Street address, delta), see GameInstance in CSMM (lib/gameinstance.cpp)
@@ -85,13 +85,13 @@ def main():
     dol = DolFile(path)
     mapper = Mapper(dol, VERSIONS[version])
     std = mapper.boomStreetToStandard
-    board, ai, shops = (importlib.import_module(name) for name in MODS)
+    board, ai, number, shops = (importlib.import_module(name) for name in MODS)
 
     groups = {
         'Board128Squares': board.PATCHES + board.quick_save_patches(std(board.G_BOARD)),
         'AiPathing': ai.PATCHES,
         'EightShopDistricts': shops.area_ui_patches(0, std(shops.AREA_UI_NAMES)),
-        'hooks': [(addr, orig, None) for mod in (board, ai, shops) for addr, orig, _, _ in mod.HOOKS],
+        'hooks': [(addr, orig, None) for mod in (board, ai, number, shops) for addr, orig, _, _ in mod.HOOKS],
     }
     for name, entries in groups.items():
         wrong = [(addr, orig, dol.word(std(addr))) for addr, orig, _ in entries if dol.word(std(addr)) != orig]
@@ -114,7 +114,7 @@ def main():
         os.mkdir(os.path.join(root, 'sys'))
         shutil.copy(path, os.path.join(root, 'sys', 'main.dol'))
         game = Game(mapper)
-        for mod in (board, ai, shops):
+        for mod in (board, ai, number, shops):
             print(mod.__name__)
             mod.mod.saveFiles(root, game, [])
     print('all mods completed')

@@ -5,7 +5,7 @@ The original function is exponential, so larger boards can take many minutes.
 """
 import os, sys, struct, random, importlib.util
 here = os.path.dirname(os.path.abspath(__file__))
-sys.path[:0] = [here, os.path.dirname(here)]
+sys.path[:0] = [here, os.path.join(os.path.dirname(here), 'mod')]
 from unicorn import *
 from unicorn.ppc_const import *
 import AiPathing as m

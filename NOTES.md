@@ -22,7 +22,8 @@ Expected next to each other, paths differ per machine:
 
 ## Open points
 
-- **Fix 8 (model heap 3 MB -> 4 MB):** two autopilot games on `max_paths` finished without a crash, after 347 and 330 rounds. Before the fix, the same map crashed twice. Confirmed by the user, and the README says so.
+- **Fix 8 (model heap):** confirmed: an autopilot game of 802 rounds on `max_paths` with the Mario Character Pack finished without a crash, and the breakpoints for a failed fallback and for fix 9 never hit. History: a 4 MB heap removed the crash but hung before the title screen with the pack; 3.25 MB started but later crashed. Now the heap stays at 3 MB and `Resource::Model::Obj::init` retries with `Memory::Wii::Allocator()` when `Construct` returns NULL. The first crash read in `exec` without a write in `Open` first, which is not explained yet.
+  Measured with the Mario Character Pack on `max_paths` (logging breakpoint on the fallback path, `r4` = requested size, `r7`/`r10` = free block at the end of the model heap, which ends at 0x935E0010): each selector opening falls back for about 40-55 panels of 0x1B20 bytes (about 340 KiB). The count varies with fragmentation. The free block at the end shrank twice early (0x5A0, 0x480 bytes, probably board models) and then stayed at 0xDB0 over four openings, so no leak in the model heap. A second model of 0x1E100 bytes (about 120 KiB) also falls back: the star animation on Boon and Boom squares. The fallback models come from MEM1 and their addresses are reused across openings, so they are freed; the task heap was never needed.
 - **Possible leak:** it is not checked whether `ChanceCardSelector::Close` frees everything. A crash that returns much later would point to a leak or steady growth. Two clean games of more than 300 rounds speak against a large leak.
 - **Heap fill level:** never measured directly. The cause is derived from code and registers.
 - **Selector tiles:** `r20` was 60 in the crash, the tile count was not confirmed (probably 64), and the user saw a complete selection after ignoring the exceptions. This is unexplained.
@@ -48,7 +49,7 @@ Memory:
 | 0x04 | id |
 | 0x08-0x0F | Shop squares (maximum 8) |
 | 0x10 | Shop count |
-| 0x14-0x63 | Table of 20 values, read by `CalcSellStockLimit`; looks derived, unconfirmed |
+| 0x14-0x63 | Table of 20 values, read by `CalcSellStockLimit`. 0x14 + 4 × player is the stock that player holds in the district (`GPProcStock::ProcSell` uses it as the sell maximum, capped at 999) |
 | 0x64, 0x68, 0x6C | Values used for prices; 0x68 is the current stock price as used in `BuyStock`, 0x6C its previous value |
 | 0x74 | Stock traded this turn |
 
