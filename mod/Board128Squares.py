@@ -16,12 +16,6 @@ PATCHES = [
 	# Larger boards overflow into the next heap block's header and crash on free.
 	# Allocate room for 256 squares (the size of Gm::Board's square array).
 	(0x800B00F4, 0x386001E0, 0x38600600),  # li r3, 0x1e0 -> li r3, 0x600
-	# Memory::Init() creates a fixed 3 MB heap in MEM2 for all models (Resource::Model::Obj). Large boards
-	# with many buildings fill it. Game::ChanceCardSelector::Open() then fails to create the last card
-	# panels and exec() reads the material of the missing model (crash at 0x80348254 reading from 0x4).
-	# Use 4 MB; the task heap gets the rest of MEM2 and shrinks accordingly.
-	(0x8000D2F8, 0x3C600030, 0x3C600040),  # lis r3, 0x30 -> lis r3, 0x40 (OSAllocFromMEM2ArenaHi)
-	(0x8000D310, 0x3C800030, 0x3C800040),  # lis r4, 0x30 -> lis r4, 0x40 (MEMCreateExpHeapEx)
 ]
 
 
@@ -68,6 +62,25 @@ SETUP_SUSPEND_SAVE = 0x80012D2C       # Flag::SaveData::SetupSuspendData  bl Gm:
 STOP_SWITCH_MAP_ARRAY_HA = 0x8007F138 # Gm::Board::StopSwitch         lis r4, s_map_data_array@ha
 STOP_SWITCH_MAP_ARRAY_L = 0x8007F144  # Gm::Board::StopSwitch         addi r4, r4, s_map_data_array@l
 
+# Memory::Init() creates a fixed 3 MB heap in MEM2 for all models (Resource::Model::Obj). Large boards fill
+# it. ChanceCardSelector::Open() then fails to create the last card panels and uses the missing models
+# (crashes at 0x80348200, 0x80348254 and in the panel animation). A larger heap is no solution: the task
+# heap gets the rest of MEM2, and with 4 MB the game hangs before the title screen with a character pack.
+# When a model does not fit, create it with Memory::Wii::Allocator() instead, which uses the MEM1 heap and
+# then the task heap. Models remember their allocator, and Memory::Heap::Free() handles both heaps.
+MODEL_SIMPLE_STORE = 0x800527F0       # Resource::Model::Obj::init    stw r3, 0x54(r31) (ScnMdlSimple)
+MODEL_STORE = 0x80052818              # Resource::Model::Obj::init    stw r3, 0x54(r31) (ScnMdl)
+MEMORY_ALLOCATOR = 0x8000D380         # Memory::Wii::Allocator()
+SCN_MDL_SIMPLE_CONSTRUCT = 0x80363AD0 # nw4r::g3d::ScnMdlSimple::Construct(MEMAllocator*, ulong*, ResMdl, int)
+SCN_MDL_CONSTRUCT = 0x80366160        # nw4r::g3d::ScnMdl::Construct(MEMAllocator*, ulong*, ResMdl, ulong, int)
+
+# If a model is missing anyway, CopiedMatAccess::GetResMatChan() returns NULL, and ChanceCardSelector and
+# others use the result without checking. Ignore NULL in both functions.
+MAT_COLOR_SET = 0x803481EC            # ResMatChan::GXSetChanMatColor lwz r3, 0x0(r3)
+MAT_COLOR_SET_NEXT = 0x803481F0
+MAT_COLOR_GET = 0x80348244            # ResMatChan::GXGetChanMatColor lwz r4, 0x0(r3)
+MAT_COLOR_GET_NEXT = 0x80348248
+
 # (Boom Street address, original instruction, hook label, link)
 HOOKS = [
 	(CALC_SAVE_SIZE_MULLI, 0x1C600028, 'calc_save_size', False),
@@ -76,6 +89,10 @@ HOOKS = [
 	(SAVE_GAME_SQUARES, 0x7FA4EB78, 'save_squares', False),
 	(LOAD_GAME_SQUARE, 0xAA3F0000, 'load_square', True),
 	(SETUP_SUSPEND_SAVE, 0x48070AF9, 'suspend_save', True),
+	(MODEL_SIMPLE_STORE, 0x907F0054, 'model_simple_fallback', True),
+	(MODEL_STORE, 0x907F0054, 'model_fallback', True),
+	(MAT_COLOR_SET, 0x80630000, 'mat_color_set', False),
+	(MAT_COLOR_GET, 0x80830000, 'mat_color_get', False),
 ]
 
 
@@ -202,6 +219,46 @@ def assemble(base, std, vars_addr, map_array):
 	a.mtlr(0)
 	a.addi(1, 1, 0x10)
 	a.blr()
+
+	# Resource::Model::Obj::init: r3 = new model, r30 = buffer options, r31 = this; the ResMdl for
+	# Construct is at r1+0xC (ScnMdlSimple) or r1+0x8 (ScnMdl)
+	for label, construct, res_mdl, args in (
+			('model_simple_fallback', SCN_MDL_SIMPLE_CONSTRUCT, 0xC, lambda: a.li(6, 1)),
+			('model_fallback', SCN_MDL_CONSTRUCT, 0x8, lambda: (a.mr(6, 30), a.li(7, 1)))):
+		a.label(label)
+		a.cmpwi(3, 0)
+		a.bne(label + '_store')
+		a.stwu(1, -0x10, 1)
+		a.mflr(0)
+		a.stw(0, 0x14, 1)
+		a.bl(std(MEMORY_ALLOCATOR))
+		a.li(4, 0)
+		a.addi(5, 1, 0x10 + res_mdl)
+		args()
+		a.bl(std(construct))
+		a.lwz(0, 0x14, 1)
+		a.mtlr(0)
+		a.addi(1, 1, 0x10)
+		a.label(label + '_store')
+		a.stw(3, 0x54, 31)
+		a.blr()
+
+	# ResMatChan::GXSetChanMatColor (leaf function, reached via b): keep cr0, it is tested after the hook
+	a.label('mat_color_set')
+	a.lwz(3, 0, 3)
+	a.emit(0x2C830000)             # cmpwi cr1, r3, 0
+	a.emit(0x4D860020)             # beqlr cr1
+	a.b(std(MAT_COLOR_SET_NEXT))
+
+	# ResMatChan::GXGetChanMatColor (leaf function, reached via b)
+	a.label('mat_color_get')
+	a.lwz(4, 0, 3)
+	a.cmpwi(4, 0)
+	a.bne('mat_color_get_ok')
+	a.li(3, 0)
+	a.blr()
+	a.label('mat_color_get_ok')
+	a.b(std(MAT_COLOR_GET_NEXT))
 	return a
 
 
