@@ -3,9 +3,9 @@
     {
         "name":"Fortune Street Fixes",
         "description":"Various fixes for Boom Street/Fortune Street/Itadaki Street",
-        "version":"0.3",
+        "version":"0.4",
         "entity":"modpack",
         "type":"fixes",
-        "last_updated":"2026/11/07"
+        "last_updated":"2026/11/11"
     }
 }

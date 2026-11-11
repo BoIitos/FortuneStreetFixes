@@ -6,14 +6,17 @@ Developed and tested with the PAL version Boom Street (ST7P01). All addresses go
 
 ## Usage
 
-Add this modpack to CSMM like any other modpack. The fixes are split into four independent mods; remove a line from `modlist.txt` to leave one out.
+You can either use FortuneStreetFixes.zip as an additional modpack in CSMM or use Samples.zip as the primary modpack. Samples.zip currently includes the modpack and three sample boards.
+To build the modpack yourself, clone the repository and run make.bat. This will create the ZIP archives in the output folder.
+The fixes are split into five independent mods; remove a line from `modlist.txt` to leave one out.
 
 | Mod | Purpose | Fixes |
 |---|---|---|
 | `Board128Squares` | Boards with up to 128 squares, including quick saves | 1–4, 8–9 |
 | `AiPathing` | AI crash and freezes on boards with many branches | 5–6 |
-| `AiNumberInput` | AI stuck when entering a number with more digits than the input has | 10 |
 | `EightShopDistricts` | District overview with up to 8 shops | 7 |
+| `AiNumberInput` | AI stuck when entering a number with more digits than the input has | 10 |
+| `LayoutFontLeak` | Memory leak that eventually hangs the game before a minigame | 11 |
 
 `FortuneStreetFixesCommon.py` holds the assembler and patch helpers shared by the mods. It is not a mod itself, so it is not listed in `modlist.txt`, but it must stay in the modpack.
 
@@ -33,6 +36,7 @@ The mods patch `main.dol` at build time, and `EightShopDistricts` also changes t
 | 8 | Crash at 0x80348254 (read from 0x4), 0x80348200 (write to 0x4) or in the panel animation when the venture card selection opens on large boards, not on every opening | All models (`Resource::Model::Obj`) share a fixed 3 MB heap in MEM2 (`Memory::Init`). When it is full, `ChanceCardSelector::Open` cannot create the last card panels (`ScnMdl` stays NULL), and `Open` and `exec` use them without checking | When a model does not fit, create it with `Memory::Wii::Allocator()` instead (hooks at 0x800527F0, 0x80052818), which uses the MEM1 heap and then the task heap. The heap size stays unchanged: with 4 MB, the crash was gone in two autopilot games of over 300 rounds, but the game hung before the title screen together with a character pack | Confirmed in game: autopilot game of 802 rounds on a 128-square map together with a character pack. Each venture card selection created about 40–55 panels with the fallback, and the star animation on Boon and Boom squares sometimes needed it too |
 | 9 | Same crash addresses as fix 8, should a model still be missing | `CopiedMatAccess::GetResMatChan` returns NULL for a missing model, but `ChanceCardSelector` and others use the result without checking | `ResMatChan::GXGetChanMatColor` and `GXSetChanMatColor` ignore NULL (hooks at 0x80348244, 0x803481EC). This is only a safety net: the panel animation in `Open` would still crash | Emulator-verified against the original code; never triggered in game since fix 8 |
 | 10 | The AI gets stuck in the stock sale: the cursor moves through the digits forever (for example 188 shown when selling all of 1188 stock) | `Game::GameInputCpu::procNumber` enters the target number digit by digit and only confirms when the display equals the target. The stock input has 3 digits, so a target above 999 is never reached. Vanilla code; it shows up in long games, especially with AI mods that sell all stock | Limit the target to the largest number the input can show (10^digits − 1, hook at 0x800AE564), so the AI sells 999 | Emulator-verified (routine only); not yet tested in game |
+| 11 | In long games, the game hangs on the title of a minigame (seen with Memory Blocks): the curtain stays, music keeps playing | `Scene::Layout::Manager::SetExtraFont` (called through `Game::SetLayoutExtraFont` by about 60 UI constructors, speech balloons and menus) appends the font to a vector of the layout's `ResourceHolder` on every call, without checking for an existing entry. The common UI holder lives for the whole game, so the vector keeps growing (16 bytes per entry, 4,179 entries after 25 rounds), and each growth copies it to a new block 1.6 times the size. After 545 rounds of an autopilot game it held 101,984 entries in a 2.5 MB block and the task heap was so fragmented that `game/mg_block.brres` (2.7 MB) found no free block. `Resource::Async` never retries a failed load, so `Game::GameManager` waits forever. Vanilla code | Skip the append when the vector already holds the same font without a `FontRefLink` (hook at 0x8006C9EC). One entry keeps the font alive just as long | Confirmed in game: an autopilot game of 486 rounds finished without a hang. The vector held 10 entries after 244, 470 and 486 rounds, and the largest free block of the task heap stayed at 6.6 MB (2.5 MB in the game that hung) |
 
 Addresses are Boom Street (ST7P01) virtual addresses.
 
@@ -40,7 +44,8 @@ Addresses are Boom Street (ST7P01) virtual addresses.
 
 - **128 squares is a hard limit.** `Gm::Board` has room for 128 places. Square 129 onward overlaps the district data, so maps that large crash on load (`Gm::Area::AddPlace`, 0x8009203C). Moving the array is not practical (200+ code sites). Ideally CSMM would reject such maps on import.
 - **12 districts is a hard limit.** The 12 areas sit at a fixed place in `Gm::Board` (0x2A00–0x2FA0, followed by the players), each player has 12 stock counters (0x414–0x443), the save format has fixed slots for 12, and the UI is laid out for districts A–L.
-- **8 shops per district is a hard limit.** `Gm::Area` stores its shops in 8 bytes (0x08–0x0F), followed by the shop count. `Gm::Area::AddPlace` has no bounds check, so a 9th shop overwrites the count. With fix 7, the overview shows all 8.- **Weaker AI on very branchy maps:** with fix 5, the AI evaluates fewer routes on such maps. It is slightly weaker, but no longer crashes.
+- **8 shops per district is a hard limit.** `Gm::Area` stores its shops in 8 bytes (0x08–0x0F), followed by the shop count. `Gm::Area::AddPlace` has no bounds check, so a 9th shop overwrites the count. With fix 7, the overview shows all 8.
+- **Weaker AI on very branchy maps:** with fix 5, the AI evaluates fewer routes on such maps. It is slightly weaker, but no longer crashes.
 
 ## Disclaimer
 

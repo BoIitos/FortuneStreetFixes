@@ -8,7 +8,7 @@ desc:
 ruleSet: Standard
 theme: DragonQuest
 initialCash: 2500
-targetAmount: 25000
+targetAmount: 30000
 baseSalary: 500
 salaryIncrement: 250
 maxDiceRoll: 9
@@ -153,6 +153,11 @@ changelog:
   - version: 1
     added: 
       - Initial Release
+  - version: 2
+    changed: 
+      - Expanded two more districts to eight shops.
+      - Rearanged some event squares.
+      - Raised target amount.
 authors:
   - name: Bolitos
     url: https://github.com/BoIitos
